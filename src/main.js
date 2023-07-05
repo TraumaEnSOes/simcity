@@ -26,7 +26,7 @@ function init( ) {
     const ambientLight = new THREE.AmbientLight( 0xeeeeee, 3 );
     scene.add( ambientLight );
 
-    // world.randomElevation( 2 );
+    world.randomElevation( 40 );
     world.buildTriangles( scene );
 
     renderer = new THREE.WebGLRenderer( { antialias: true } );

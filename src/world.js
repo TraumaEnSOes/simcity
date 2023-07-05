@@ -9,41 +9,35 @@ class World {
             y: 0,
             z: 0
         };
-        this._xMap = { };
-        this._yMap = { };
-        this._zMap = { };
+        this._adyacents = { }
         this._points = World._generatePoints( radius, detail );
         this._triangles = { }
 
-        this._fillMaps( );
+        this._fillAdyacents( );
     }
 
-    _fillMaps( ) {
-        const xMap = this._xMap;
-        const yMap = this._yMap;
-        const zMap = this._zMap;
+    _fillAdyacents( ) {
+        const tArray = new Float32Array( 3 );
+        const adyacents = this._adyacents;
 
         this._points.forEach( function( points, index ) {
-            xMap[points[0]] ??= new Set( );
-            xMap[points[0]].add( index );
-            yMap[points[1]] ??= new Set( );
-            yMap[points[1]].add( index );
-            zMap[points[2]] ??= new Set( );
-            zMap[points[2]].add( index );
+            tArray[0] = points[0];
+            tArray[1] = points[1];
+            tArray[2] = points[2];
+            adyacents[tArray] ??= new Set( );
+            adyacents[tArray].add( index );
 
-            xMap[points[3]] ??= new Set( );
-            xMap[points[3]].add( index );
-            yMap[points[4]] ??= new Set( );
-            yMap[points[4]].add( index );
-            zMap[points[5]] ??= new Set( );
-            zMap[points[5]].add( index );
+            tArray[0] = points[3];
+            tArray[1] = points[4];
+            tArray[2] = points[5];
+            adyacents[tArray] ??= new Set( );
+            adyacents[tArray].add( index );
 
-            xMap[points[6]] ??= new Set( );
-            xMap[points[6]].add( index );
-            yMap[points[7]] ??= new Set( );
-            yMap[points[7]].add( index );
-            zMap[points[8]] ??= new Set( );
-            zMap[points[8]].add( index );
+            tArray[0] = points[6];
+            tArray[1] = points[7];
+            tArray[2] = points[8];
+            adyacents[tArray] ??= new Set( );
+            adyacents[tArray].add( index );
         } );
     }
 
@@ -52,30 +46,37 @@ class World {
             count = this._points.length;
         }
         const totalPoints = this._points.length;
+        const elevated = { };
+        const tArray = new Float32Array( 3 );
 
-        const modified = { };
         for( let idx = 0; idx < count; ++idx ) {
             const triangleIdx = Math.trunc( Math.random( ) * totalPoints );
             const triangle = this._points[triangleIdx];
-            let x, y, z;
+            const x = triangle[0];
+            const y = triangle[1];
+            const z = triangle[2];
 
-            while( true ) {
-                x = triangle[0];
-                y = triangle[1];
-                z = triangle[2];
-
-                if( modified[x] === undefined ) {
-
-                }
+            tArray[0] = x;
+            tArray[1] = y;
+            tArray[2] = z;
+            if( elevated[tArray] ) {
+                --idx;
+                continue;
             }
-    
+
             // const currentDistance = Math.sqrt( x * x + y * y + z * z );
-            const newDistance = 1.15;
+            const newDistance = 1.1;
             const newX = x * newDistance;
             const newY = y * newDistance;
             const newZ = z * newDistance;
 
-            const toApply = this.findTriangles( x, y, z );
+            delete elevated[tArray];
+            tArray[0] = newX;
+            tArray[1] = newY;
+            tArray[2] = newZ;
+            elevated[tArray] = true;
+
+            const toApply = this.findTriangles( triangle[0], triangle[1], triangle[2] );
             console.log( "Aplicando sobre", toApply.size, "triangulos" );
             const self = this;
 
@@ -100,23 +101,21 @@ class World {
     }
 
     findTriangles( x, y, z ) {
-        const xMap = this._xMap[x];
-        const yMap = this._yMap[y];
-        const zMap = this._zMap[z];
+        const tArray = new Float32Array( 3 );
+        tArray[0] = x;
+        tArray[1] = y;
+        tArray[2] = z;
 
-        const xuyMap = new Set( );
-        xMap.forEach( function( index ) {
-            if( yMap.has( index ) ) {
-                xuyMap.add( index );
-            }
-        } );
+        const origin = this._adyacents[tArray];
+        if( !origin ) {
+            return;
+        }
 
         const result = new Set( );
-        xuyMap.forEach( function( index ) {
-            if( zMap.has( index ) ) {
-                result.add( index );
-            }
-        } )
+
+        origin.forEach( function( value ) {
+            result.add( value );
+        } );
 
         return result;
     }
@@ -147,6 +146,7 @@ class World {
             const geometry = new THREE.BufferGeometry( );
             geometry.setAttribute( "position", new THREE.BufferAttribute( position, 3 ) );
             const material = new THREE.MeshBasicMaterial( { color: Math.floor( Math.random( ) * pow ) } );
+            // const material = new THREE.MeshBasicMaterial( { color: 0x33FF33 } );
     
             const mesh = new THREE.Mesh( geometry, material );
             scene.add( mesh );
