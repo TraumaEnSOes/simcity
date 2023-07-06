@@ -15,18 +15,18 @@ const worldHalfDepth = worldDepth / 2;
 const clock = new THREE.Clock( );
 
 function init( ) {
-    const world = new World( 10000, 5 );
+    const world = new World( 10000, 10 );
     container = document.getElementById( "container" );
 
-    camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 20000 );
-    camera.position.y = 20000;
+    camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 30000 );
+    camera.position.y = 25000;
 
     scene = new THREE.Scene( );
     scene.background = new THREE.Color( 0xbfd1e5 );
     const ambientLight = new THREE.AmbientLight( 0xeeeeee, 3 );
     scene.add( ambientLight );
 
-    world.randomElevation( 40 );
+    world.makeAccidents( 20, 50 );
     world.buildTriangles( scene );
 
     renderer = new THREE.WebGLRenderer( { antialias: true } );

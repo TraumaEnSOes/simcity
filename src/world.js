@@ -1,5 +1,21 @@
 import * as THREE from "/three/three.js";
 
+const GreensColors = [
+    0x006633,
+    0x336600
+];
+
+const MaroonsColors = [
+    0x800000,
+    0x8B0000,
+    0xA52A2A,
+    0xB22222,
+    0xCD5C5C,
+    0xE9967A,
+];
+
+const WaterColor = 0x0000FF;
+
 class World {
     constructor( radius, detail ) {
         this._params = {
@@ -9,44 +25,71 @@ class World {
             y: 0,
             z: 0
         };
-        this._adyacents = { }
+
+        this._pointsIndex = { };
+        this._pointsIndex3D = { };
         this._points = World._generatePoints( radius, detail );
-        this._triangles = { }
+        this._states = { }
 
         this._fillAdyacents( );
     }
 
     _fillAdyacents( ) {
         const tArray = new Float32Array( 3 );
-        const adyacents = this._adyacents;
+        const pIndex = this._pointsIndex;
+        const pIndex3D = this._pointsIndex3D;
 
         this._points.forEach( function( points, index ) {
+            pIndex3D[points] = index;
+
             tArray[0] = points[0];
             tArray[1] = points[1];
             tArray[2] = points[2];
-            adyacents[tArray] ??= new Set( );
-            adyacents[tArray].add( index );
+            pIndex[tArray] ??= new Set( );
+            pIndex[tArray].add( index );            
 
             tArray[0] = points[3];
             tArray[1] = points[4];
             tArray[2] = points[5];
-            adyacents[tArray] ??= new Set( );
-            adyacents[tArray].add( index );
+            pIndex[tArray] ??= new Set( );
+            pIndex[tArray].add( index );
 
             tArray[0] = points[6];
             tArray[1] = points[7];
             tArray[2] = points[8];
-            adyacents[tArray] ??= new Set( );
-            adyacents[tArray].add( index );
+            pIndex[tArray] ??= new Set( );
+            pIndex[tArray].add( index );
         } );
+/*
+        const adyacents = this._adyacentsTriangles;
+        // Reserve full array.
+        adyacents[this._points.length - 1] = new Set( );
+
+        pIndex.values( ).forEach( function( group ) {
+            group.forEach( function( index ) {
+                adyacents[index] ??= new Set( );
+                
+            } );
+        } );
+*/
     }
 
-    randomElevation( count = 0 ) {
-        if( count === 0 ) {
-            count = this._points.length;
+    makeAccidents( up, down ) {
+        if( down ) {
+            this._doRandomWater( down );
         }
+        if( up ) {
+            this._doRandomElevation( up );
+        }
+    }
+
+    _doRandomWater( count ) {
+
+    }
+
+    _doRandomElevation( count ) {
         const totalPoints = this._points.length;
-        const elevated = { };
+        const states = this._states;
         const tArray = new Float32Array( 3 );
 
         for( let idx = 0; idx < count; ++idx ) {
@@ -59,25 +102,23 @@ class World {
             tArray[0] = x;
             tArray[1] = y;
             tArray[2] = z;
-            if( elevated[tArray] ) {
+            if( states[tArray] ) {
                 --idx;
                 continue;
             }
 
             // const currentDistance = Math.sqrt( x * x + y * y + z * z );
-            const newDistance = 1.1;
+            const newDistance = 1.05;
             const newX = x * newDistance;
             const newY = y * newDistance;
             const newZ = z * newDistance;
 
-            delete elevated[tArray];
             tArray[0] = newX;
             tArray[1] = newY;
             tArray[2] = newZ;
-            elevated[tArray] = true;
+            states[tArray] = 1; // Mark point raised.
 
             const toApply = this.findTriangles( triangle[0], triangle[1], triangle[2] );
-            console.log( "Aplicando sobre", toApply.size, "triangulos" );
             const self = this;
 
             toApply.forEach( function( index ) {
@@ -100,24 +141,67 @@ class World {
         }
     }
 
+    _doRandomWater( count ) {
+        const totalPoints = this._points.length;
+        const states = this._states;
+        const tArray = new Float32Array( 3 );
+
+        for( let idx = 0; idx < count; ++idx ) {
+            const triangleIdx = Math.trunc( Math.random( ) * totalPoints );
+            const triangle = this._points[triangleIdx];
+            const x = triangle[0];
+            const y = triangle[1];
+            const z = triangle[2];
+
+            tArray[0] = x;
+            tArray[1] = y;
+            tArray[2] = z;
+            if( states[tArray] ) {
+                --idx;
+                continue;
+            }
+
+            states[tArray] = -1; // Mark point as water.
+        }
+    }
+
     findTriangles( x, y, z ) {
         const tArray = new Float32Array( 3 );
         tArray[0] = x;
         tArray[1] = y;
         tArray[2] = z;
 
-        const origin = this._adyacents[tArray];
-        if( !origin ) {
-            return;
-        }
-
+        const group = this._pointsIndex[tArray];
         const result = new Set( );
 
-        origin.forEach( function( value ) {
-            result.add( value );
-        } );
+        if( group !== undefined ) {
+            group.forEach( function( value ) {
+                result.add( value );
+            } );
+        }
 
         return result;
+    }
+
+    findTriangle( x, y, z, x2, y2, z2, x3, y3, z3 ) {
+        let arr;
+
+        if( x instanceof Float32Array ) {
+            arr = x;
+        } else {
+            arr = new Float32Array( 9 );
+            arr[0] = x;
+            arr[1] = y;
+            arr[2] = z;
+            arr[3] = x2;
+            arr[4] = y2;
+            arr[5] = z2;
+            arr[6] = x3;
+            arr[7] = y3;
+            arr[8] = z3;
+        }
+
+        return this._pointsIndex3D( arr );
     }
 
     buildTriangles( scene ) {
@@ -141,16 +225,70 @@ class World {
         }
 
         const pow = Math.pow( 256, 3 );
+        const tArray = new Float32Array( 3 );
+        const states = this._states;
+        const self = this;
+        // const texture = new THREE.TextureLoader( ).load( "/texture.jpg" );
 
-        this._points.forEach( function( position ) {
+        this._points.forEach( function( position, index ) {
             const geometry = new THREE.BufferGeometry( );
             geometry.setAttribute( "position", new THREE.BufferAttribute( position, 3 ) );
-            const material = new THREE.MeshBasicMaterial( { color: Math.floor( Math.random( ) * pow ) } );
-            // const material = new THREE.MeshBasicMaterial( { color: 0x33FF33 } );
+            const state = self._triangleState( position );
+            const material = new THREE.MeshBasicMaterial( { color: self._getColor( state ) } );
+//            if( state === 0 ) {
+//                material = new THREE.MeshBasicMaterial( { map: texture } );
+//            } else {
+//                material = new THREE.MeshBasicMaterial( { color: self._getColor( state ) } );
+//            }
     
             const mesh = new THREE.Mesh( geometry, material );
+            mesh.userData.worldTriangleIndex = index;
             scene.add( mesh );
         } );
+    }
+
+    _triangleState( position ) {
+        const tArray = new Float32Array( 3 );
+        let state = 0;
+
+        tArray[0] = position[0];
+        tArray[1] = position[1];
+        tArray[2] = position[2];
+
+        state = this._states[tArray];
+        if( state ) {
+            return state;
+        }
+
+        tArray[0] = position[3];
+        tArray[1] = position[4];
+        tArray[2] = position[5];
+
+        state = this._states[tArray];
+        if( state ) {
+            return state;
+        }
+
+        tArray[0] = position[6];
+        tArray[1] = position[7];
+        tArray[2] = position[8];
+
+        state = this._states[tArray];
+        if( state ) {
+            return state;
+        }
+
+        return 0;
+    }
+
+    _getColor( state ) {
+        if( state > 0 ) {
+            return MaroonsColors[Math.floor( Math.random( ) * 6 )]
+        } else if( state < 0 ) {
+            return WaterColor;
+        } else {
+            return GreensColors[Math.floor( Math.random( ) * 2 )]
+        }
     }
 
     static _generatePoints( radius, detail ) {    
