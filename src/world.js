@@ -6,18 +6,32 @@ const GreensColors = [
 ];
 
 const MaroonsColors = [
-    0x800000,
-    0x8B0000,
-    0xA52A2A,
-    0xB22222,
-    0xCD5C5C,
-    0xE9967A,
+    0x623307,
+    0x6D3C11,
+    0x78451A,
+    0x834F23,
+    0x8E582C,
+    0xA06C3F,
+    0xB88B5C,
+    0xD0AB7A,
+    0xE8CB9A,
+    0xFFEDBA
+];
+
+const Elevations = [
+    1.01,
+    1.02,
+    1.03,
+    1.04,
+    1.05,
+    1.06,
+    1.07
 ];
 
 const WaterColor = 0x0000FF;
 
 class World {
-    constructor( radius, detail ) {
+    constructor( radius, detail, generator ) {
         this._params = {
             radius: radius,
             detail: detail,
@@ -26,9 +40,11 @@ class World {
             z: 0
         };
 
+        generator ??= World._generatePoints;
+
         this._pointsIndex = { };
         this._pointsIndex3D = { };
-        this._points = World._generatePoints( radius, detail );
+        this._points = generator( radius, detail );
         this._states = { }
 
         this._fillAdyacents( );
@@ -83,10 +99,6 @@ class World {
         }
     }
 
-    _doRandomWater( count ) {
-
-    }
-
     _doRandomElevation( count ) {
         const totalPoints = this._points.length;
         const states = this._states;
@@ -107,8 +119,7 @@ class World {
                 continue;
             }
 
-            // const currentDistance = Math.sqrt( x * x + y * y + z * z );
-            const newDistance = 1.05;
+            const newDistance = Elevations[Math.floor( Math.random( ) * 7 )];
             const newX = x * newDistance;
             const newY = y * newDistance;
             const newZ = z * newDistance;
@@ -283,7 +294,7 @@ class World {
 
     _getColor( state ) {
         if( state > 0 ) {
-            return MaroonsColors[Math.floor( Math.random( ) * 6 )]
+            return MaroonsColors[Math.floor( Math.random( ) * 10 )]
         } else if( state < 0 ) {
             return WaterColor;
         } else {
