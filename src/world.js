@@ -254,6 +254,7 @@ class World {
     
             const mesh = new THREE.Mesh( geometry, material );
             mesh.userData.worldTriangleIndex = index;
+            mesh.matrixAutoUpdate = false;
             scene.add( mesh );
         } );
     }
